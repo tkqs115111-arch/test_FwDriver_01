@@ -80,8 +80,11 @@
         
         .submenu { display: none; background-color: #fcfcfc; list-style: none; padding: 0; }
         .submenu.open { display: block; }
+        
+        /* 支援多層級縮排 */
         .submenu .menu-item { padding-left: 35px; font-size: 14px; color: #666; }
         .submenu .submenu .menu-item { padding-left: 50px; font-size: 13px; }
+        .submenu .submenu .submenu .menu-item { padding-left: 65px; font-size: 13px; color: #555; background: #fdfdfd; }
 
         .arrow { font-size: 12px; color: #999; transition: transform 0.3s; }
         .arrow.rotate { transform: rotate(90deg); }
@@ -179,13 +182,32 @@
         .spec-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px; /* 每一列的間距 */
+            margin-bottom: 8px;
             font-size: 14px;
-            align-items: baseline; /* 讓文字底部對齊 */
+            align-items: baseline;
         }
 
         .spec-label { color: #666; font-weight: 500; min-width: 60px; }
         .spec-value { color: #333; font-weight: 600; text-align: right; word-break: break-all; margin-left: 10px; }
+
+        /* --- 新增：Driver 列表樣式 --- */
+        .driver-container { margin-top: 10px; }
+        .driver-list {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 13px;
+        }
+        .driver-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px dashed #e0e0e0;
+        }
+        .driver-item:last-child { border-bottom: none; }
+        .driver-os { color: #666; font-weight: 500; }
+        .driver-ver { color: #333; font-weight: 700; font-family: monospace; }
 
         .divider {
             border-top: 1px dashed #ddd;
@@ -225,11 +247,6 @@
                 <span style="font-size:13px; color:#666;">目前篩選：</span>
                 <div id="activeTagsList" style="display:contents;"></div>
             </div>
-            <div class="hidden-filters">
-                <div id="categoryFilters"></div>
-                <div id="brandFilters"></div>
-                <div id="typeFilters"></div>
-            </div>
         </div>
 
         <div class="card-grid" id="productContainer"></div>
@@ -237,7 +254,7 @@
 </div>
 
 <script>
-    // --- 1. 資料模擬 (新增 formFactor 欄位以區分 PCIE/OCP) ---
+    // --- 1. 資料模擬 (使用 drivers 陣列取代單一 driver 字串) ---
     const products = [
         { 
             id: 1, 
@@ -247,8 +264,12 @@
             type: "高階", 
             spec: "24GB GDDR6X", 
             fw: "95.02.18.00.00", 
-            driver: "535.104.05", 
-            os: ["Windows 11", "Ubuntu 22.04"]
+            // 新增：多 OS Driver 支援
+            drivers: [
+                { os: "Windows", ver: "537.13" },
+                { os: "SuSE", ver: "inBox" }
+            ],
+            os: ["Windows 11", "SuSE"]
         },
         { 
             id: 2, 
@@ -258,7 +279,10 @@
             type: "高階", 
             spec: "48GB GDDR6", 
             fw: "020.003.000.030", 
-            driver: "23.Q3.1", 
+            drivers: [
+                { os: "Win 11", ver: "23.Q3.1" },
+                { os: "RHEL 9", ver: "23.20" }
+            ],
             os: ["Windows 11", "RHEL 9"]
         },
         { 
@@ -266,23 +290,30 @@
             name: "ConnectX-6 Dx", 
             brand: "NVIDIA", 
             category: "Network", 
-            formFactor: "PCIE", // 新增：指定介面
+            formFactor: "PCIE", 
             type: "網卡", 
             spec: "100GbE QSFP56", 
             fw: "22.36.1010", 
-            driver: "4.8-1.0.0", 
-            os: ["Ubuntu 22.04", "ESXi 8.0"]
+            drivers: [
+                { os: "Win Svr 22", ver: "23.7.5000" },
+                { os: "Suse", ver: "inBox" },
+                { os: "ESXi 8.0", ver: "4.23.0.66" }
+            ],
+            os: ["Suse", "ESXi 8.0", "Win Server 2022"]
         },
         { 
             id: 4, 
             name: "BCM57414 OCP", 
             brand: "Broadcom", 
             category: "Network", 
-            formFactor: "OCP",  // 新增：指定介面
+            formFactor: "OCP", 
             type: "網卡", 
             spec: "25GbE OCP 3.0", 
             fw: "218.0.153.0", 
-            driver: "218.0.55.0", 
+            drivers: [
+                { os: "RHEL 9", ver: "224.0.155" },
+                { os: "ESXi 8.0", ver: "224.0.55" }
+            ],
             os: ["RHEL 9", "ESXi 8.0"]
         },
         { 
@@ -293,45 +324,46 @@
             type: "RAID卡", 
             spec: "8GB Cache", 
             fw: "5.250.00-3498", 
-            driver: "7.723.05.00", 
-            os: ["Win Server 2022"]
+            drivers: [
+                { os: "Win Svr 22", ver: "7.723.05" },
+                { os: "ESXi 8.0", ver: "7.723.02" }
+            ],
+            os: ["Win Server 2022", "ESXi 8.0"]
         },
         { 
             id: 6, 
             name: "Intel E810-XXV", 
             brand: "Intel", 
             category: "Network", 
-            formFactor: "PCIE", // 新增
+            formFactor: "PCIE", 
             type: "網卡", 
             spec: "25GbE SFP28", 
             fw: "3.20", 
-            driver: "1.11.16", 
-            os: ["Ubuntu 20.04"]
+            drivers: [
+                { os: "Suse", ver: "INbox" },
+                { os: "Win 11", ver: "28.1" }
+            ],
+            os: ["Suse", "Windows 11"]
         }
     ];
 
-    // --- 2. 動態生成樹狀結構邏輯 ---
+    // --- 2. 動態生成樹狀結構邏輯 (維持不變) ---
     function buildSidebarTree(data) {
         const tree = {};
 
         data.forEach(p => {
             let path = [];
-
-            // 邏輯分支：Network 走特殊路徑，其他走一般路徑
             if (p.category === 'Network') {
-                // 路徑: PCIE/OCP -> Network -> 廠家 -> 規格
-                const root = p.formFactor ? p.formFactor.toUpperCase() : 'PCIE'; // 預設 PCIE
+                const root = p.formFactor ? p.formFactor.toUpperCase() : 'PCIE'; 
                 path = [root, 'Network', p.brand, p.spec];
             } else {
-                // 路徑: 類型(Category) -> 廠家 -> 規格
                 path = [p.category, p.brand, p.spec];
             }
 
-            // 將路徑插入樹狀物件
             let currentLevel = tree;
             path.forEach((key, index) => {
                 if (!currentLevel[key]) {
-                    currentLevel[key] = (index === path.length - 1) ? null : {}; // 最後一層設為 null (葉節點)
+                    currentLevel[key] = (index === path.length - 1) ? null : {};
                 }
                 currentLevel = currentLevel[key];
             });
@@ -339,27 +371,22 @@
         return tree;
     }
 
-    // 遞迴渲染 HTML
     function renderTreeHTML(node, level = 0, distinctPath = []) {
-        if (!node) return ''; // 葉節點結束
+        if (!node) return ''; 
 
         let html = '';
         Object.keys(node).forEach(key => {
             const children = node[key];
-            const currentPath = [...distinctPath, key]; // 紀錄當前路徑以便篩選
-            
-            // 判斷是否為最後一層 (規格層)
+            const currentPath = [...distinctPath, key];
             const isLeaf = children === null;
 
             if (isLeaf) {
-                // 點擊規格：直接執行篩選
                 html += `<li>
                             <div class="menu-item" onclick="filterBySpec('${currentPath.join('|')}')">
                                 ${key}
                             </div>
                          </li>`;
             } else {
-                // 有子選單：顯示折疊箭頭
                 html += `<li>
                             <div class="menu-item" onclick="toggleMenu(this)">
                                 ${key} <span class="arrow">▶</span>
@@ -380,7 +407,6 @@
     }
 
     // --- 3. 互動與篩選邏輯 ---
-
     function toggleMenu(el) {
         const submenu = el.nextElementSibling;
         const arrow = el.querySelector('.arrow');
@@ -390,21 +416,12 @@
         }
     }
 
-    // 點擊側欄最後一層 (規格) 的行為
     function filterBySpec(pathString) {
         const path = pathString.split('|');
-        // path 結構可能是:
-        // 一般: [Category, Brand, Spec]
-        // 網路: [FormFactor, 'Network', Brand, Spec]
-        
         const spec = path[path.length - 1];
         
-        // 設定搜尋框並執行搜尋
         const searchInput = document.getElementById('searchInput');
-        searchInput.value = spec; // 直接將規格填入搜尋框
-        
-        // 清除其他 checkbox (為了讓使用者專注於該規格)
-        document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
+        searchInput.value = spec; 
         
         applyFilters();
     }
@@ -420,6 +437,7 @@
         }
     }
 
+    // --- 4. 產品渲染 (新增 Driver 列表渲染) ---
     function renderProducts(data) {
         const container = document.getElementById('productContainer');
         if (data.length === 0) {
@@ -431,7 +449,19 @@
             const brandColor = getBrandColorVar(product.brand);
             const osTagsHtml = product.os.map(os => `<span class="os-pill">${os}</span>`).join('');
             
-            // 顯示介面標籤 (如果是 Network)
+            // 處理 Driver 列表 HTML
+            let driversHtml = '<span style="color:#999; font-style:italic; font-size:13px;">無資料</span>';
+            if (product.drivers && product.drivers.length > 0) {
+                driversHtml = `<div class="driver-list">
+                    ${product.drivers.map(d => `
+                        <div class="driver-item">
+                            <span class="driver-os">${d.os}</span>
+                            <span class="driver-ver">${d.ver}</span>
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+
             const ffBadge = product.category === 'Network' && product.formFactor 
                 ? `<span style="font-size:10px; background:#eee; color:#333; padding:2px 6px; border-radius:4px; margin-right:5px;">${product.formFactor}</span>` 
                 : '';
@@ -458,9 +488,9 @@
                         <span class="spec-value">${product.fw || 'N/A'}</span>
                     </div>
 
-                    <div class="spec-row">
-                        <span class="spec-label">DRIVER:</span>
-                        <span class="spec-value">${product.driver || 'N/A'}</span>
+                    <div class="driver-container">
+                        <span class="spec-label" style="display:block; margin-bottom:4px;">DRIVER 版本:</span>
+                        ${driversHtml}
                     </div>
 
                     <div class="divider"></div>
@@ -475,22 +505,26 @@
         }).join('');
     }
 
-    // 原始的 Checkbox 篩選與搜尋邏輯 (保持不變，與側欄連動)
+    // --- 5. 搜尋邏輯 (新增 Driver 內容搜尋) ---
     function applyFilters() {
         const kw = document.getElementById('searchInput').value.toLowerCase();
         
-        // 取得 Checkbox 狀態 (如果使用者同時用側欄搜尋 + 上方篩選)
-        const getChecked = (n) => Array.from(document.querySelectorAll(`input[name="${n}"]:checked`)).map(c=>c.value);
-        // 注意：這裡的 hidden filters 需要與 HTML 中的 checkbox 對應，若您移除了 renderHiddenFilters，這裡需要調整
-        // 為了簡化，這裡假設我們主要靠搜尋關鍵字過濾
-        
-        const activeDiv = document.getElementById('activeFiltersContainer');
-        const activeList = document.getElementById('activeTagsList');
-        // 這裡暫時隱藏 tag 顯示邏輯，專注於功能
-        
         const res = products.filter(p => {
-            // 搜尋邏輯：名稱、規格、FW、Driver、以及 FormFactor
-            const content = [p.name, p.spec, p.fw, p.driver, p.formFactor, p.brand, p.category].join(' ').toLowerCase();
+            // 組合 Drivers 的版本與 OS 供搜尋
+            const driverVersions = p.drivers ? p.drivers.map(d => d.ver).join(' ') : '';
+            const driverOSs = p.drivers ? p.drivers.map(d => d.os).join(' ') : '';
+
+            const content = [
+                p.name, 
+                p.spec, 
+                p.fw, 
+                driverVersions, // 讓使用者能搜尋版本號
+                driverOSs,      // 讓使用者能搜尋 "ESXi" 找到對應 Driver
+                p.formFactor, 
+                p.brand, 
+                p.category
+            ].join(' ').toLowerCase();
+
             return content.includes(kw);
         });
         
@@ -502,11 +536,20 @@
         applyFilters(); 
     }
 
-    // 初始化
+   // 初始化
     window.onload = function() { 
         renderSidebar(); 
-        // 這裡移除了 renderHiddenFilters，因為側欄已經改成點擊規格直接搜尋
         renderProducts(products); 
+
+        // --- 新增：監聽 Enter 鍵 ---
+        const input = document.getElementById("searchInput");
+        input.addEventListener("keypress", function(event) {
+            // 如果按下的是 Enter 鍵 (Key Code 13)
+            if (event.key === "Enter") {
+                event.preventDefault(); // 防止某些瀏覽器預設的表單送出行為
+                applyFilters();         // 執行搜尋功能
+            }
+        });
     };
 </script>
 
