@@ -1,0 +1,97 @@
+/* --- Driver 互動列表樣式 (修改版) --- */
+.driver-container {
+    margin-top: 15px;
+    flex-grow: 1;
+}
+
+.section-title {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+/* 驅動顯示框 */
+.driver-box {
+    background-color: #f9fafb;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 10px 15px;
+    min-height: 40px; /* 防止切換時高度跳動 */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+/* 每一行的驅動資訊 (預設隱藏) */
+.driver-row {
+    display: none; /* 關鍵：預設不顯示 */
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 只有被選中的那一行才顯示 */
+.driver-row.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.driver-os-label {
+    color: #555;
+    font-weight: 500;
+}
+
+.driver-ver-val {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+/* --- 底部按鈕區 (OS Badges) --- */
+.os-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+/* 讓 Badge 變成像按鈕一樣 */
+.os-pill {
+    background-color: #fff;
+    color: #555;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    border: 1px solid #dcdcdc;
+    cursor: pointer; /* 滑鼠變成手指 */
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.os-pill:hover {
+    background-color: #e2e6ea;
+    border-color: #adb5bd;
+}
+
+/* 被選中時的樣式 (深灰色背景) */
+.os-pill.active {
+    background-color: #495057;
+    color: #fff;
+    border-color: #495057;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.support-label {
+    font-size: 12px; 
+    color: #888; 
+    align-self: center;
+    margin-right: 5px;
+}
