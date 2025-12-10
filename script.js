@@ -7,7 +7,7 @@ const CONFIG = {
     SPREADSHEET_ID: '1tJjquBs-Wyav4VEg7XF-BnTAGoWhE-5RFwwhU16GuwQ', 
     
     // 工作表名稱 (通常是 Sheet1 或 工作表1)
-    SHEET_NAME: '工作表1',
+    SHEET_NAME: 'sheet1',
 
     // 定義哪些欄位是「機型」，程式會自動掃描這些欄位找驅動版本
     // 必須完全對應 Google Sheet 的第一列標題
@@ -347,3 +347,4 @@ window.onload = async function() {
     });
 
 };
+
