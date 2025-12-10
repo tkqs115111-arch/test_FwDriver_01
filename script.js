@@ -6,7 +6,7 @@ let products = [];
 
 async function fetchDataFromDatabase() {
     // 1. 設定你的 Google Sheet ID 和工作表名稱
-    const spreadsheetId = '2PACX-1vShstGLIVRLUcHIComi18vRJP1dhfroruuEEVrIqmOLA-B5SIV-HKh_zX7ac6GRcpg34DC-i8Al7pn-/pubhtml' ; 
+    const spreadsheetId = 'e/2PACX-1vShstGLIVRLUcHIComi18vRJP1dhfroruuEEVrIqmOLA-B5SIV-HKh_zX7ac6GRcpg34DC-i8Al7pn-' ; 
     const sheetName = '工作表1' ; // 預設通常是 "工作表1" 或 "Sheet1"
 
     // 使用 opensheet API 將 Google Sheet 轉為 JSON
@@ -58,6 +58,7 @@ function parseDrivers(jsonString) {
     }
 
 }
+
 
 
 
