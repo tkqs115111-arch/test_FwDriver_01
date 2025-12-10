@@ -7,7 +7,7 @@ const CONFIG = {
     SPREADSHEET_ID: '1tJjquBs-Wyav4VEg7XF-BnTAGoWhE-5RFwwhU16GuwQ', 
     
     // 工作表名稱 (通常是 Sheet1 或 工作表1)
-    SHEET_NAME: 'sheet1',
+    SHEET_NAME: 'Sheet1',
 
     // 定義哪些欄位是「機型」，程式會自動掃描這些欄位找驅動版本
     // 必須完全對應 Google Sheet 的第一列標題
@@ -50,167 +50,6 @@ async function fetchDataFromDatabase() {
  * 核心演算法：將 Excel 矩陣格式轉換為應用程式物件
  * 處理：合併儲存格填充、多 OS 合併、提取機型驅動
  */
-function processMatrixData(rawData) {
-    const processedMap = new Map();
-    
-    // 用來處理「合併儲存格」的暫存變數
-    let lastComponent = "";
-    let lastVendor = "";
-    let lastFormFactor = ""; // 假設網卡有這欄，若無則程式邏輯會自動處理
-
-    rawData.forEach((row, index) => {
-        // 1. 向下填充 (Fill Down) 邏輯
-        if (row.Component && row.Component.trim() !== "") lastComponent = row.Component.trim();
-        if (row.Vendor && row.Vendor.trim() !== "") lastVendor = row.Vendor.trim();
-        
-        // 如果 Sheet 裡有 FormFactor 欄位就讀取，沒有就預設
-        // 這裡假設如果 Component 是 Network，我們可以嘗試讀取或預設
-        let currentFormFactor = row.FormFactor ? row.FormFactor.trim() : "";
-        if (currentFormFactor !== "") lastFormFactor = currentFormFactor;
-        
-        // 2. 取得基本資料
-        const name = row.Description ? row.Description.trim() : "未命名產品";
-        const os = row.Operating_System || row.OS || "Unknown"; // 相容 header 名稱
-
-        // 3. 掃描所有機型欄位
-        CONFIG.SERVER_MODELS.forEach(modelKey => {
-            const version = row[modelKey];
-
-            // 有效版本號判定 (不為空且不為 n/a)
-            if (version && version.toString().toLowerCase() !== "n/a" && version.toString().trim() !== "") {
-                
-                // 建立唯一 Key (用 Description 當 Key 來合併不同 OS 的資料)
-                const productKey = name;
-
-                if (!processedMap.has(productKey)) {
-                    processedMap.set(productKey, {
-                        id: index,
-                        name: name,
-                        brand: lastVendor,
-                        category: lastComponent,
-                        formFactor: lastFormFactor, // 用於 Network 分類
-                        osList: new Set(),
-                        drivers: []
-                    });
-                }
-
-                const product = processedMap.get(productKey);
-
-                // 加入 OS
-                product.osList.add(os);
-
-                // 加入 Driver 資訊
-                product.drivers.push({
-                    os: os,
-                    model: modelKey.replace(/_/g, " "), // 顯示時把底線換空白
-                    ver: version
-                });
-            }
-        });
-    });
-
-    // 將 Set 轉回 Array 並輸出
-    return Array.from(processedMap.values()).map(p => ({
-        ...p,
-        os: Array.from(p.osList) // 轉回陣列方便渲染
-    }));
-}
-
-// =========================================================
-//  PART 2: 側欄選單邏輯 (包含 Network 特殊處理)
-// =========================================================
-
-function buildSidebarTree(data) {
-    const tree = {};
-
-    data.forEach(p => {
-        let path = [];
-
-        // --- 核心邏輯：Network 特殊分流 ---
-        if (p.category && p.category.toLowerCase() === 'network') {
-            // 如果沒有 FormFactor，預設歸類為 PCIE
-            const root = p.formFactor ? p.formFactor.toUpperCase() : 'PCIE'; 
-            // 路徑： PCIE/OCP > Network > Brand > Spec(Name)
-            path = [root, 'Network', p.brand, p.name];
-        } else {
-            // 一般路徑： Category > Brand > Spec(Name)
-            path = [p.category, p.brand, p.name];
-        }
-
-        // 建立樹狀物件
-        let currentLevel = tree;
-        path.forEach((key, index) => {
-            if (!key) key = "其他"; // 防呆
-            if (!currentLevel[key]) {
-                currentLevel[key] = (index === path.length - 1) ? null : {};
-            }
-            currentLevel = currentLevel[key];
-        });
-    });
-    return tree;
-}
-
-function renderTreeHTML(node, level = 0, distinctPath = []) {
-    if (!node) return ''; 
-
-    let html = '';
-    // 排序 Key，讓廠商或類型按字母排序
-    Object.keys(node).sort().forEach(key => {
-        const children = node[key];
-        const currentPath = [...distinctPath, key];
-        const isLeaf = children === null;
-
-        if (isLeaf) {
-            // 葉節點：點擊觸發搜尋 (搜尋規格名稱)
-            html += `<li>
-                        <div class="menu-item" onclick="filterBySpec('${key}')">
-                            ${key}
-                        </div>
-                     </li>`;
-        } else {
-            // 分支節點：可折疊
-            html += `<li>
-                        <div class="menu-item" onclick="toggleMenu(this)">
-                            ${key} <span class="arrow">▶</span>
-                        </div>
-                        <ul class="submenu">
-                            ${renderTreeHTML(children, level + 1, currentPath)}
-                        </ul>
-                     </li>`;
-        }
-    });
-    return html;
-}
-
-function renderSidebar() {
-    const treeData = buildSidebarTree(products);
-    const menuContainer = document.getElementById('sidebarMenu');
-    if (Object.keys(treeData).length === 0) {
-        menuContainer.innerHTML = '<li style="padding:15px; color:red;">無資料或載入失敗</li>';
-    } else {
-        menuContainer.innerHTML = renderTreeHTML(treeData);
-    }
-}
-
-function toggleMenu(el) {
-    const submenu = el.nextElementSibling;
-    const arrow = el.querySelector('.arrow');
-    if(submenu) { 
-        submenu.classList.toggle('open'); 
-        if(arrow) arrow.classList.toggle('rotate'); 
-    }
-}
-
-function filterBySpec(specName) {
-    const searchInput = document.getElementById('searchInput');
-    searchInput.value = specName; 
-    applyFilters();
-}
-
-// =========================================================
-//  PART 3: 渲染卡片與 UI 邏輯
-// =========================================================
-
 function getBrandColorVar(brand) {
     if (!brand) return 'var(--brand-default)';
     const b = brand.toUpperCase();
@@ -222,6 +61,31 @@ function getBrandColorVar(brand) {
     return 'var(--brand-default)';
 }
 
+// [新增功能] 切換驅動版本的互動邏輯
+// cardId: 該張卡片的唯一編號 (例如 card-0)
+// idx: 被點擊的 OS 在該卡片陣列中的索引 (例如 0, 1, 2)
+function switchDriver(cardId, idx) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+
+    // 1. 處理內容顯示：先隱藏全部，再顯示目標
+    const rows = card.querySelectorAll('.driver-row');
+    rows.forEach(r => r.classList.remove('active'));
+    
+    const targetRow = card.querySelector(`.driver-row[data-index="${idx}"]`);
+    if (targetRow) targetRow.classList.add('active');
+
+    // 2. 處理按鈕樣式：先移除全部 active，再點亮目標
+    const btns = card.querySelectorAll('.os-pill');
+    btns.forEach(b => b.classList.remove('active'));
+
+    const targetBtn = card.querySelector(`.os-pill[data-index="${idx}"]`);
+    if (targetBtn) targetBtn.classList.add('active');
+}
+
+// 為了讓 HTML onclick 能呼叫到這個函式，將其掛載到 window
+window.switchDriver = switchDriver;
+
 function renderProducts(data) {
     const container = document.getElementById('productContainer');
     
@@ -230,41 +94,57 @@ function renderProducts(data) {
         return;
     }
 
-    container.innerHTML = data.map(product => {
+    container.innerHTML = data.map((product, pIndex) => { // 使用 pIndex 作為唯一 ID
         const brandColor = getBrandColorVar(product.brand);
-        const osTagsHtml = product.os.map(os => `<span class="os-pill">${os}</span>`).join('');
+        const cardId = `card-${pIndex}`;
         
-        // --- 生成 Driver 列表 (包含 OS, 機型, 版本) ---
-        let driversHtml = '<div style="padding:10px; color:#999; font-size:12px;">無相容驅動資訊</div>';
-        
-        if (product.drivers && product.drivers.length > 0) {
-            // 排序：先按 OS 排，再按機型排
-            product.drivers.sort((a, b) => a.os.localeCompare(b.os) || a.model.localeCompare(b.model));
+        // --- 邏輯核心：準備互動資料 ---
+        // 如果沒有驅動資料，顯示預設訊息
+        let driverBoxHtml = '<div style="padding:5px; color:#999; font-size:12px;">暫無驅動資訊</div>';
+        let badgesHtml = '';
 
-            driversHtml = `
-            <div class="driver-list">
-                <div class="driver-header">
-                    <span style="flex:1;">OS</span>
-                    <span style="flex:1;">機型</span>
-                    <span style="width:70px; text-align:right;">版本</span>
+        if (product.drivers && product.drivers.length > 0) {
+            
+            // 排序：確保顯示順序一致
+            product.drivers.sort((a, b) => a.os.localeCompare(b.os));
+
+            // 1. 生成上方顯示區 (Driver Box)
+            // 包含多個 driver-row，但只有第一個 (index 0) 會有 active class
+            const rowsHtml = product.drivers.map((d, i) => {
+                const activeClass = (i === 0) ? 'active' : '';
+                return `
+                <div class="driver-row ${activeClass}" data-index="${i}">
+                    <span class="driver-os-label">${d.os}</span>
+                    <span class="driver-ver-val">${d.ver}</span>
                 </div>
-                ${product.drivers.map(d => `
-                    <div class="driver-item">
-                        <span class="col-os">${d.os}</span>
-                        <span class="col-model">${d.model}</span>
-                        <span class="col-ver">${d.ver}</span>
-                    </div>
-                `).join('')}
-            </div>`;
+                `;
+            }).join('');
+
+            driverBoxHtml = `<div class="driver-box">${rowsHtml}</div>`;
+
+            // 2. 生成下方按鈕區 (Badges)
+            // 綁定 onclick 事件，呼叫 switchDriver
+            badgesHtml = product.drivers.map((d, i) => {
+                const activeClass = (i === 0) ? 'active' : '';
+                // 簡化 OS 名稱顯示 (例如 Windows Server 2022 -> Windows) 讓按鈕不要太長，可選
+                const shortOS = d.os.split(' ')[0]; 
+                
+                return `
+                <span class="os-pill ${activeClass}" 
+                      data-index="${i}"
+                      onclick="window.switchDriver('${cardId}', ${i})">
+                      ${d.os}
+                </span>`;
+            }).join('');
         }
 
-        // 如果是 Network，顯示 PCIE 或 OCP 標籤
+        // 處理 FormFactor 標籤
         const ffBadge = (product.category === 'Network' && product.formFactor) 
             ? `<span style="font-size:10px; background:#eee; color:#333; padding:1px 5px; border-radius:3px; margin-right:5px; border:1px solid #ccc;">${product.formFactor}</span>` 
             : '';
 
         return `
-        <div class="hw-card">
+        <div class="hw-card" id="${cardId}">
             <div class="card-header">
                 <div class="card-title" title="${product.name}">${ffBadge}${product.name}</div>
                 <div class="brand-badge" style="background-color: ${brandColor}">${product.brand}</div>
@@ -275,15 +155,17 @@ function renderProducts(data) {
                     <span class="spec-label">類型</span>
                     <span class="spec-value">${product.category}</span>
                 </div>
-                
                 <div class="driver-container">
-                    ${driversHtml}
+                    <div class="section-title">DRIVER 版本:</div>
+                    ${driverBoxHtml}
                 </div>
 
-                <div class="divider"></div>
-
-                <div style="font-size:12px; color:#888; margin-bottom:4px;">支援系統:</div>
-                <div class="os-tags">${osTagsHtml}</div>
+                <div class="support-badges">
+                    <span class="support-label">支援系統:</span>
+                    <div class="os-tags">
+                        ${badgesHtml}
+                    </div>
+                </div>
             </div>
         </div>
         `;
@@ -345,6 +227,4 @@ window.onload = async function() {
             applyFilters(); 
         }
     });
-
 };
-
