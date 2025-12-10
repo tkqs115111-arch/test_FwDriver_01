@@ -6,8 +6,8 @@ let products = [];
 
 async function fetchDataFromDatabase() {
     // 1. 設定你的 Google Sheet ID 和工作表名稱
-    const spreadsheetId = "1gY5KxQJqWpMv3XF-xOqV_5_p65zZtOq2wE8-y6y6o9E"; 
-    const sheetName = "Sheet1"; // 預設通常是 "工作表1" 或 "Sheet1"
+    const spreadsheetId = 1gY5KxQJqWpMv3XF-xOqV_5_p65zZtOq2wE8-y6y6o9E ; 
+    const sheetName = Sheet1 ; // 預設通常是 "工作表1" 或 "Sheet1"
 
     // 使用 opensheet API 將 Google Sheet 轉為 JSON
     const apiUrl = `https://opensheet.elk.sh/${spreadsheetId}/${sheetName}`;
@@ -58,4 +58,5 @@ function parseDrivers(jsonString) {
     }
 
 }
+
 
