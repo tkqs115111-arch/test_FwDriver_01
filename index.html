@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCL Driver & Firmware Tool</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="mobile-nav">
+        <i class="fas fa-bars nav-icon" onclick="toggleSidebar('left')"></i>
+        <div class="mobile-title">HCL Tool</div>
+        <i class="fas fa-box-open nav-icon" onclick="toggleSidebar('right')"></i>
+    </div>
+    
+    <div class="overlay" id="overlay" onclick="closeAllSidebars()"></div>
+
+    <aside class="sidebar-left" id="sidebarLeft">
+        <i class="fas fa-times mobile-close-btn" onclick="closeAllSidebars()"></i>
+        <div class="sidebar-header">
+            <i class="fas fa-microchip"></i> 產品型號列表
+        </div>
+        <div class="tree-menu">
+            <ul id="sidebarMenu">
+                <li style="padding:20px; text-align:center; color:#999;">Loading...</li>
+            </ul>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="search-panel">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" id="searchInput" placeholder="搜尋型號 (如 X710, 9400...)">
+            </div>
+            
+            <select id="global-os-select" class="os-selector-main" onchange="applyFilters()">
+                <option value="Windows">Windows</option>
+            </select>
+
+            <button class="btn btn-search" onclick="applyFilters()">搜尋</button>
+            <button class="btn btn-clear" onclick="clearFilters()">重置</button>
+        </div>
+
+        <div class="status-bar">
+            <span style="font-size:12px; color:#666;" id="result-count">準備中...</span>
+            
+            <div class="target-group-info" onclick="loadGroupView(activeGroupId)" title="點擊查看此群組詳細內容">
+                目前配置: <span id="target-group-name">載入中...</span> <i class="fas fa-chevron-right" style="margin-left:5px; font-size:10px;"></i>
+            </div>
+        </div>
+
+        <div class="card-list" id="productContainer"></div>
+    </main>
+
+    <aside class="sidebar-right" id="sidebarRight">
+        <i class="fas fa-times mobile-close-btn" onclick="closeAllSidebars()"></i>
+        <div class="sidebar-header">
+            <span id="active-group-name">群組 1</span>
+        </div>
+        <div class="groups-wrapper" id="groups-wrapper"></div>
+        <div class="btn-new-group" onclick="createNewGroup()">
+            <i class="fas fa-plus-circle"></i> 建立新配置
+        </div>
+    </aside>
+
+    <script src="script.js"></script>
+</body>
+</html>
