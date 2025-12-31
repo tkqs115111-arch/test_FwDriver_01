@@ -139,6 +139,27 @@ function updateStatusBar(osName, count) {
     }
 }
 
+// [關鍵修復] 左側選單點擊 -> 強制顯示內容
+function filterByModel(m, el) { 
+    if(el) setActiveMenuItem(el); 
+    
+    const input = document.getElementById('searchInput');
+    if(input) {
+        input.value = m; 
+    }
+
+    const specificProduct = allProducts.find(p => p.model === m);
+    
+    if (specificProduct) {
+        currentView = 'search';
+        renderProducts([specificProduct], 'search');
+    } else {
+        applyFilters();
+    }
+
+    if (window.innerWidth <= 768) closeAllSidebars();
+}
+
 function filterByBrand(brandName) {
     document.getElementById('searchInput').value = brandName;
     applyFilters();
@@ -376,6 +397,7 @@ function renderGroupsSidebar() {
         </div>`;
     });
     
+    // 同步更新中間狀態列的 "目前配置"
     const activeGroup = groups.find(g => g.id === activeGroupId);
     if(activeGroup) {
         const titleElem = document.getElementById('active-group-name');
@@ -485,7 +507,7 @@ function renderSidebarMenu() {
     });
 }
 
-// [修改] 側邊欄點擊邏輯：手風琴效果 (自動關閉其他)
+// 側邊欄點擊邏輯：手風琴效果 (自動關閉其他)
 function toggleSubMenu(el) { 
     setActiveMenuItem(el); 
     
@@ -496,7 +518,7 @@ function toggleSubMenu(el) {
     Array.from(containerUl.children).forEach(sibling => {
         if (sibling !== parentLi && sibling.classList.contains('open')) {
             sibling.classList.remove('open'); 
-            // 也要把裡面的 submenu 藏起來 (確保箭頭和高度都重置)
+            // 也要把裡面的 submenu 藏起來
             const subMenu = sibling.querySelector('.submenu');
             if (subMenu) subMenu.classList.remove('open');
         }
@@ -505,13 +527,6 @@ function toggleSubMenu(el) {
     // 2. 切換自己的狀態
     el.nextElementSibling.classList.toggle('open'); 
     parentLi.classList.toggle('open'); 
-}
-
-function filterByModel(m, el) { 
-    if(el) setActiveMenuItem(el); 
-    document.getElementById('searchInput').value = m; 
-    applyFilters(); 
-    if (window.innerWidth <= 768) closeAllSidebars();
 }
 
 // =========================================================
@@ -604,6 +619,8 @@ function applyFilters() {
 
 function clearFilters() { 
     document.getElementById('searchInput').value = ''; 
+    const allMenuItems = document.querySelectorAll('.menu-item');
+    allMenuItems.forEach(item => item.classList.remove('active'));
     showDashboard(); 
 }
 
