@@ -22,7 +22,7 @@ body {
 }
 
 /* =========================================
-   1. 左側邊欄
+   1. 左側邊欄 (Sidebar)
    ========================================= */
 .sidebar-left {
     width: 280px; 
@@ -43,6 +43,7 @@ body {
 .tree-menu { flex: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; }
 .tree-menu ul, .tree-menu li { list-style: none; padding: 0; margin: 0; }
 
+/* 通用選單項目樣式 */
 .menu-item {
     padding: 12px 15px; 
     cursor: pointer;
@@ -56,24 +57,31 @@ body {
     position: relative;
 }
 
-/* 第一層 (Category)：預設深藍色邊條 */
+/* -----------------------------------------------------------
+   [關鍵修改] 階梯式縮排設定 (Stepped Indentation)
+   使用 !important 確保縮排一定生效
+----------------------------------------------------------- */
+
+/* Level 1: 類別 (Category) - 貼齊左側 */
 .menu-category { 
     font-weight: 800; 
     color: var(--header-blue);
     background: #ffffff; 
     border-left: 4px solid var(--header-blue); 
+    padding-left: 15px !important; /* 基礎距離 */
 }
 .menu-category:hover { background: #dde6ef; }
 
-/* [修改] 第二層 (Vendor)：預設顯示灰色邊條 (不再是透明) */
+/* Level 2: 廠牌 (Vendor) - 第一階縮排 */
 .menu-vendor { 
     font-weight: 600; 
     color: #444;
     background: #e8eff5; 
-    padding-left: 30px; 
     
-    /* 這裡改成灰色實線，讓它永遠有一條線 */
-    border-left: 4px solid #b0c4de; 
+    /* [縮排] 比上一層多 30px */
+    padding-left: 25px !important; 
+    
+    border-left: 4px solid #b0c4de; /* 預設灰色邊條 */
 }
 .menu-vendor:hover { 
     background: #dce4eb; 
@@ -81,7 +89,36 @@ body {
     border-left-color: var(--search-red); 
 }
 
-/* 展開或選中時，強制變紅 (覆蓋上面的預設色) */
+/* Level 3: 型號 (Model) - 第二階縮排 */
+.menu-model { 
+    font-size: 14px; 
+    color: #666; 
+    background: #fffcfc; 
+    
+    /* [縮排] 比上一層再多 30px */
+    padding-left: 40px !important; 
+    
+    justify-content: flex-start; 
+    border-left: 4px solid transparent; 
+    border-bottom: 1px solid #f0f0f0; 
+}
+
+/* Level 3 選中狀態：粉紅底 + 紅字 + 紅邊 */
+.menu-model:hover, .menu-model.active {
+    background-color: #ffe6e6 !important; 
+    color: var(--search-red) !important;  
+    font-weight: bold;
+    
+    padding-left: 75px !important; /* 維持縮排 */
+    
+    border-left-color: var(--search-red) !important; 
+}
+
+/* -----------------------------------------------------------
+   狀態連動設定 (展開時父層變色)
+----------------------------------------------------------- */
+
+/* 當 li 展開 (.open) 或 項目被選中 (.active) 時，左邊條強制變紅 */
 li.open > .menu-category,
 li.open > .menu-vendor,
 .menu-category.active,
@@ -91,27 +128,10 @@ li.open > .menu-vendor,
     background-color: #fcfcfc;
 }
 
+/* 展開時箭頭變紅 */
 li.open > .menu-item .arrow,
 .menu-item.active .arrow {
     color: var(--search-red);
-}
-
-/* 第三層 (Model) */
-.menu-model { 
-    font-size: 14px; 
-    color: #666; 
-    background: #fffcfc; 
-    padding-left: 50px; 
-    justify-content: flex-start; 
-    border-left: 4px solid transparent; /* Model層通常不需要預設邊條，保持乾淨 */
-    border-bottom: 1px solid #f0f0f0; 
-}
-.menu-model:hover, .menu-model.active {
-    background-color: #ffe6e6; 
-    color: var(--search-red);  
-    font-weight: bold;
-    padding-left: 55px;
-    border-left-color: var(--search-red); 
 }
 
 .arrow { font-size: 11px; color: #a0a0a0; transition: transform 0.3s; }
