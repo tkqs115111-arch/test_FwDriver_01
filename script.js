@@ -3,9 +3,9 @@
 // =========================================================
 const SPREADSHEET_ID = '1tJjquBs-Wyav4VEg7XF-BnTAGoWhE-5RFwwhU16GuwQ'; 
 
-const TARGET_SHEETS = ['Windows', 'RHEL', 'Oracle', 'ESXi', 'FW']; 
+const TARGET_SHEETS = ['Windows', 'RHEL', 'SLES', 'ESXi', 'FW']; 
 
-let OS_LIST = ['Windows', 'RHEL']; 
+let OS_LIST = ['Windows', 'RHEL',]; 
 
 const STORAGE_KEY = 'HCL_CONFIG_DATA_V5'; 
 
@@ -97,15 +97,23 @@ async function initData() {
         });
     });
 
+    // [修改] 過濾掉大分類名稱，只保留具體版本
+    const IGNORED_OS = ['Windows', 'RHEL', 'Oracle', 'SLES', 'Linux', 'OS Independent'];
+    
     if(detectedOS.size > 0) {
-        OS_LIST = Array.from(detectedOS).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+        OS_LIST = Array.from(detectedOS)
+            .filter(os => !IGNORED_OS.includes(os)) // 移除大分類
+            .sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
     }
     
+    // 如果過濾完發現沒東西 (例如資料只有 Windows)，則加回來避免壞掉
+    if (OS_LIST.length === 0) OS_LIST = ['Windows'];
+
     initGlobalOSSelector();
     renderGroupsSidebar(); 
 
     allProducts = Object.values(aggregatedMap);
-    renderSidebarMenu();
+    renderSidebarMenu(); // 這裡會呼叫新的三層結構
     showDashboard();
 }
 
@@ -126,7 +134,7 @@ function showDashboard() {
                 <div class="quick-card" onclick="filterByBrand('Broadcom')"><i class="fas fa-hdd"></i><span>Broadcom</span></div>
             </div>
             <div class="instruction-step">
-                <small><i class="fas fa-info-circle"></i> 提示：左側選單已啟用自動縮合功能；支援 Excel 自動填補。</small>
+                <small><i class="fas fa-info-circle"></i> 提示：OS 選單已過濾大分類；左側選單支援自動縮合。</small>
             </div>
         </div>
     `;
@@ -139,7 +147,7 @@ function updateStatusBar(osName, count) {
     }
 }
 
-// [關鍵修復] 左側選單點擊 -> 強制顯示內容
+// 左側選單點擊 -> 強制顯示內容
 function filterByModel(m, el) { 
     if(el) setActiveMenuItem(el); 
     
@@ -175,8 +183,15 @@ async function fetchSheetData(sheetName) {
 function initGlobalOSSelector() {
     const sel = document.getElementById('global-os-select');
     if(sel) {
-        const listToUse = OS_LIST.length > 0 ? OS_LIST : ['Windows'];
-        sel.innerHTML = listToUse.map(os => `<option value="${os}">${os}</option>`).join('');
+        // 如果目前選到的 OS 不在新的列表裡 (例如選了 Windows 但被過濾掉了)，重置為第一個
+        const currentVal = sel.value;
+        sel.innerHTML = OS_LIST.map(os => `<option value="${os}">${os}</option>`).join('');
+        
+        if (OS_LIST.includes(currentVal)) {
+            sel.value = currentVal;
+        } else if (OS_LIST.length > 0) {
+            sel.value = OS_LIST[0];
+        }
     }
 }
 
@@ -247,6 +262,8 @@ function renderProducts(data, viewType) {
         : osInfo.mainName;
 
     data.forEach((product) => {
+        // 因為過濾了 OS_LIST，這裡要嘗試模糊匹配，或者直接找
+        // 但通常 excel 裡也會有具體版本，所以這裡應該能找到
         const driverObj = product.drivers.find(d => d.os === targetOS);
         let displayDriver = "N/A";
         let statusClass = "val-driver";
@@ -464,7 +481,7 @@ function loadFromLocalStorage() {
 }
 
 // =========================================================
-//  PART 5: 左側選單 & 視覺狀態管理
+//  PART 5: 左側選單 & 視覺狀態管理 (恢復三層結構)
 // =========================================================
 
 function setActiveMenuItem(el) {
@@ -472,38 +489,66 @@ function setActiveMenuItem(el) {
     allMenuItems.forEach(item => item.classList.remove('active'));
     if (!el) return;
     el.classList.add('active');
+    
     if (el.classList.contains('menu-model')) {
         const submenuUl = el.closest('ul.submenu');
         if (submenuUl) {
             const vendorDiv = submenuUl.previousElementSibling;
             if (vendorDiv && vendorDiv.classList.contains('menu-vendor')) {
                 vendorDiv.classList.add('active'); 
+                
+                // 再往上一層找 Category
+                const vendorUl = vendorDiv.closest('ul.submenu');
+                if (vendorUl) {
+                    const categoryDiv = vendorUl.previousElementSibling;
+                    if (categoryDiv && categoryDiv.classList.contains('menu-category')) {
+                        categoryDiv.classList.add('active');
+                    }
+                }
             }
         }
     }
 }
 
+// [關鍵] 恢復三層結構渲染 (Component -> Brand -> Model)
 function renderSidebarMenu() {
-    const menu = document.getElementById('sidebarMenu'); menu.innerHTML = '';
+    const menu = document.getElementById('sidebarMenu'); 
+    menu.innerHTML = '';
+    
+    // 1. 取得所有不重複的 Component (第一層)
     const components = [...new Set(allProducts.map(p => p.type))].filter(Boolean).sort();
+    
     components.forEach(comp => {
+        // 2. 取得該 Component 下的所有 Brand (第二層)
         const vendors = [...new Set(allProducts.filter(p => p.type === comp).map(p => p.brand))].sort();
+        
         let vendorHtml = vendors.map(v => {
-            const models = allProducts.filter(p => p.type === comp && p.brand === v).map(p => p.model);
-            return `<li>
-                        <div class="menu-item menu-vendor" onclick="toggleSubMenu(this)">
-                            ${v} <i class="fas fa-caret-right arrow"></i>
-                        </div>
-                        <ul class="submenu">
-                            ${models.map(m => `
-                                <li class="menu-item menu-model" onclick="filterByModel('${m}', this);event.stopPropagation()">
-                                    ${m}
-                                </li>`).join('')}
-                        </ul>
-                    </li>`;
+            // 3. 取得該 Brand 下的所有 Model (第三層)
+            const models = allProducts.filter(p => p.type === comp && p.brand === v).map(p => p.model).sort();
+            
+            return `
+                <li>
+                    <div class="menu-item menu-vendor" onclick="toggleSubMenu(this)">
+                        ${v} <i class="fas fa-caret-right arrow"></i>
+                    </div>
+                    <ul class="submenu">
+                        ${models.map(m => `
+                            <li class="menu-item menu-model" onclick="filterByModel('${m}', this);event.stopPropagation()">
+                                ${m}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </li>`;
         }).join('');
         
-        menu.innerHTML += `<li><div class="menu-item menu-category" onclick="toggleSubMenu(this)">${comp} <i class="fas fa-caret-right arrow"></i></div><ul class="submenu">${vendorHtml}</ul></li>`;
+        // 組合三層 HTML
+        menu.innerHTML += `
+            <li>
+                <div class="menu-item menu-category" onclick="toggleSubMenu(this)">
+                    ${comp} <i class="fas fa-caret-right arrow"></i>
+                </div>
+                <ul class="submenu">${vendorHtml}</ul>
+            </li>`;
     });
 }
 
@@ -514,17 +559,16 @@ function toggleSubMenu(el) {
     const parentLi = el.parentElement;       
     const containerUl = parentLi.parentElement; 
     
-    // 1. 找出同一層所有其他的項目，如果它們是打開的，就把它們關掉
+    // 找出同一層所有其他的項目，如果它們是打開的，就把它們關掉
     Array.from(containerUl.children).forEach(sibling => {
         if (sibling !== parentLi && sibling.classList.contains('open')) {
             sibling.classList.remove('open'); 
-            // 也要把裡面的 submenu 藏起來
             const subMenu = sibling.querySelector('.submenu');
             if (subMenu) subMenu.classList.remove('open');
         }
     });
 
-    // 2. 切換自己的狀態
+    // 切換自己的狀態
     el.nextElementSibling.classList.toggle('open'); 
     parentLi.classList.toggle('open'); 
 }
