@@ -99,7 +99,7 @@ async function initData() {
         });
     });
 
-    const IGNORED_OS = ['Windows', 'RHEL', 'Oracle', 'ESXi', 'Linux', 'OS Independent'];
+    const IGNORED_OS = ['Windows', 'RHEL', 'SLES', 'ESXi', 'Linux', 'OS Independent'];
     
     if(detectedOS.size > 0) {
         OS_LIST = Array.from(detectedOS)
