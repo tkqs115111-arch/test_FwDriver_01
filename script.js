@@ -6,7 +6,7 @@ const DB_VERSION_DATE = '2025-12-31';
 
 const SPREADSHEET_ID = '1tJjquBs-Wyav4VEg7XF-BnTAGoWhE-5RFwwhU16GuwQ'; 
 
-const TARGET_SHEETS = ['Windows', 'RHEL', 'SLES', 'ESXi', 'FW']; 
+const TARGET_SHEETS = ['FW', 'Windows', 'RHEL', 'SLES', 'ESXi']; 
 
 let OS_LIST = ['Windows', 'RHEL']; 
 
@@ -54,21 +54,27 @@ async function initData() {
         let lastValidType = 'Component';
 
         sheet.forEach(item => {
-            let rawDesc = item.description || item.Description || item['Model Name'] || item.Model;
-            let rawBrand = item.vendor || item.Vendor;
-            let rawType = item.component || item.Component;
+            // 增強欄位名稱的相容性，並預設為空字串
+            let rawDesc = item.description || item.Description || item['Model Name'] || item.Model || item.model;
+            let rawBrand = item.vendor || item.Vendor || item.brand || item.Brand;
+            let rawType = item.component || item.Component || item.type || item.Type;
 
-            if (rawDesc && rawDesc.trim() !== "") {
-                lastValidModel = rawDesc.trim();
-                if (rawBrand) lastValidBrand = rawBrand;
-                if (rawType) lastValidType = rawType;
+            // 清除可能存在的頭尾空白
+            if (typeof rawDesc === 'string') rawDesc = rawDesc.trim();
+            if (typeof rawBrand === 'string') rawBrand = rawBrand.trim();
+            if (typeof rawType === 'string') rawType = rawType.trim();
+
+            if (rawDesc && rawDesc !== "") {
+                lastValidModel = rawDesc;
+                if (rawBrand && rawBrand !== "") lastValidBrand = rawBrand;
+                if (rawType && rawType !== "") lastValidType = rawType;
             }
             
             if (!lastValidModel) return;
 
             const modelKey = lastValidModel;
-            const brandKey = rawBrand || lastValidBrand;
-            const typeKey = rawType || lastValidType;
+            const brandKey = (rawBrand && rawBrand !== "") ? rawBrand : lastValidBrand;
+            const typeKey = (rawType && rawType !== "") ? rawType : lastValidType;
 
             if (!aggregatedMap[modelKey]) {
                 aggregatedMap[modelKey] = {
@@ -79,6 +85,15 @@ async function initData() {
                     fw: 'N/A',
                     drivers: [] 
                 };
+            } else {
+                // 【修復核心】如果這個型號已經被建立，但後續(或其他Sheet)出現了明確的 brand 或 type，則覆蓋修正它
+                // 這避免了在第一個 Sheet 繼承了錯誤的空白分類，導致後續正確資料無法寫入的問題
+                if (rawBrand && rawBrand !== "" && aggregatedMap[modelKey].brand !== rawBrand) {
+                    aggregatedMap[modelKey].brand = rawBrand;
+                }
+                if (rawType && rawType !== "" && aggregatedMap[modelKey].type !== rawType) {
+                    aggregatedMap[modelKey].type = rawType;
+                }
             }
 
             if (isFwSheet) {
@@ -144,9 +159,6 @@ function showDashboard() {
                 <div class="quick-card" onclick="filterByBrand('Intel')"><i class="fas fa-microchip"></i><span>Intel</span></div>
                 <div class="quick-card" onclick="filterByBrand('Mellanox')"><i class="fas fa-network-wired"></i><span>Mellanox</span></div>
                 <div class="quick-card" onclick="filterByBrand('Broadcom')"><i class="fas fa-hdd"></i><span>Broadcom</span></div>
-            </div>
-            <div class="instruction-step">
-                <small><i class="fas fa-info-circle"></i> 提示：左側選單已啟用自動縮合功能；支援 Excel 自動填補。</small>
             </div>
         </div>
     `;
@@ -360,7 +372,7 @@ function renderGroupsSidebar() {
              onclick="setActiveGroup('${g.id}', event)">
              
             <div class="group-header">
-                <input class="group-name-input" value="${g.name}" onchange="updateGroupName('${g.id}',this.value)" onclick="event.stopPropagation()">
+                <input class="group-name-input" maxlength="16" value="${g.name}" onchange="updateGroupName('${g.id}',this.value)" onclick="event.stopPropagation()">
                 <div style="display:flex; align-items:center;">
                     <i class="fas fa-pen btn-edit-group" onclick="toggleGroupEditMode('${g.id}', this, event)"></i>
                     <i class="fas fa-trash-alt" style="color:#d93025;cursor:pointer;font-size:12px;padding:5px;" onclick="deleteGroup('${g.id}', event)"></i>
