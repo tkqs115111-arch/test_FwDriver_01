@@ -470,6 +470,8 @@ li.open > .menu-item .arrow,
 [data-theme="dark"] .data-group { border-right-color: var(--border-light) !important; }
 [data-theme="dark"] .data-label { color: #aaa !important; }
 [data-theme="dark"] .data-val { color: #fff !important; }
+[data-theme="dark"] .val-fw { color: #f39c12 !important; } /* 明亮的橘黃色 */
+[data-theme="dark"] .status-supported { color: #228b22 !important; }
 [data-theme="dark"] .btn-circle { background-color: #2d2d2d !important; border-color: #555 !important; color: #ccc !important; }
 [data-theme="dark"] .cmd-code { background-color: #2d2d2d !important; border-color: #444 !important; color: #ff7979 !important; }
 
