@@ -426,11 +426,14 @@ li.open > .menu-item .arrow,
     border-color: #333333 !important; /* <--- 讓那兩條白線變成深灰色 */
 }
 
-/* ⭐ 3. 頂部標題區塊 (左右兩側的 Header，維持暗黑底色) */
+/* ⭐ 3. 頂部標題區塊 (左右兩側的 Header) */
 [data-theme="dark"] .sidebar-header {
-    background-color: #2b2b2b !important;
-    color: var(--text-dark) !important;
-    border-bottom-color: var(--border-light) !important;
+    background-color: #1a1a1a !important; 
+    color: #8ab4f8 !important;            
+    /* ⬇️ 新增外圍框線設定 ⬇️ */
+    border: 1px solid #4a4a4a !important; /* 深灰色的完整外框線 */
+    border-radius: 8px !important;        /* 讓框框有圓角，看起來更柔和 */
+    margin: 8px !important;               /* 讓框框往內縮，不要貼死在邊緣 */
 }
 
 /* ⭐ 4. 狀態列小標籤 (資料庫版本、目前配置) */
@@ -498,12 +501,22 @@ li.open > .menu-item .arrow,
     color: #fff !important;
     border-color: #555 !important;
 }
+/* ⭐ 修改：右下角「建立新配置」按鈕 */
 [data-theme="dark"] .btn-new-group {
-    background-color: #252525 !important;
-    border-color: var(--border-light) !important;
-    color: var(--text-dark) !important;
+    background-color: #1a1a1a !important; 
+    color: #aaaaaa !important; 
+    transition: all 0.3s ease; 
+    /* ⬇️ 新增外圍框線設定 ⬇️ */
+    border: 1px solid #4a4a4a !important; /* 深灰色的完整外框線 */
+    border-radius: 8px !important;        /* 框框圓角 */
+    margin: 8px !important;               /* 讓按鈕不要貼死底部，有獨立漂浮感 */
 }
-[data-theme="dark"] .btn-new-group:hover { background-color: #444 !important; color: #fff !important; } 
+[data-theme="dark"] .btn-new-group:hover { 
+    background-color: #2980b9 !important; 
+    color: #ffffff !important;            
+    /* 滑過時，不僅背景發亮，框線也跟著變成亮藍色 */
+    border-color: #6bb9f0 !important; 
+}
 
 /* ================= 左側選單配色 ================= */
 [data-theme="dark"] .menu-category { background: #2b2b2b; color: #6bb9f0; border-left-color: #6bb9f0; }
